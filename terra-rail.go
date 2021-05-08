@@ -1,4 +1,4 @@
-package terra_rail
+package main
 
 import (
 	"github.com/differential-games/terra-rail/app/cmd"

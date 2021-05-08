@@ -13,7 +13,7 @@ type Map struct {
 	Elevation []float64
 }
 
-func (m *Map) Fill(n noise.Value) {
+func (m *Map) Fill(n *noise.Value) {
 	for x := 0; x < m.Width; x++ {
 		px := float64(x)*m.InvMaxScale
 		for y := 0; y < m.Height; y++ {
