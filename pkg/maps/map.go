@@ -32,3 +32,23 @@ func (m *Map) Fill(n *noise.Fractal) {
 		}
 	}
 }
+
+func (m *Map) Neighbors(idx int) []int {
+	x := idx / m.Height
+	y := idx % m.Height
+
+	var result []int
+	if y > 0 {
+		result = append(result, idx-1)
+	}
+	if y < (m.Height - 1) {
+		result = append(result, idx+1)
+	}
+	if x > 0 {
+		result = append(result, idx-m.Height)
+	}
+	if x < (m.Width - 1) {
+		result = append(result, idx+m.Height)
+	}
+	return result
+}
