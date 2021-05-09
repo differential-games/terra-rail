@@ -7,6 +7,9 @@ import (
 	"github.com/faiface/pixel"
 	"github.com/faiface/pixel/pixelgl"
 	"golang.org/x/image/colornames"
+	"image"
+	"image/color"
+	"math"
 	"math/rand"
 	"os"
 	"time"
@@ -15,8 +18,8 @@ import (
 )
 
 const (
-	Width = 960
-	Height = 540
+	Width = 960*3
+	Height = 540*3
 )
 
 func run() {
@@ -28,7 +31,7 @@ func run() {
 	m.Fill(n)
 
 	cfg := pixelgl.WindowConfig{
-		Title:  "Heat Simulation",
+		Title:  "Terra Rail",
 		Bounds: pixel.R(0, 0, Width, Height),
 		VSync:  true,
 	}
@@ -37,8 +40,49 @@ func run() {
 		panic(err)
 	}
 
+	highest := 0.0
+	lowest := math.MaxFloat64
+	from := 0
+	to := 0
+
+	for i, h := range m.Elevation {
+		if h > highest {
+			highest = h
+			from = i
+		}
+		if h < lowest {
+			lowest = h
+			to = i
+		}
+	}
+
+	path := maps.Shortest(&m, from, to)
+
+	img := image.NewRGBA(image.Rect(0, 0, Width/2, Height))
+	for x := 0; x < Width; x++ {
+		for y := 0; y < Height; y++ {
+			g := m.Elevation[x*Height+y]*65535
+			if math.Mod(g, 5000) < 200 {
+				g = 0
+			}
+			img.Set(x, y, color.Gray16{Y: uint16(g)})
+		}
+	}
+
+	for _, p := range path {
+		x := p / (Height)
+		y := p % (Height)
+		img.Set(x, y, colornames.Green)
+	}
+
+	pd := pixel.PictureDataFromImage(img)
+	s := pixel.NewSprite(pd, pd.Bounds())
+
 	for !win.Closed() {
 		win.Clear(colornames.Green)
+
+		s.Draw(win, pixel.IM.Moved(win.Bounds().Center()).Scaled(win.Bounds().Center(), 2.0))
+
 		win.Update()
 	}
 }

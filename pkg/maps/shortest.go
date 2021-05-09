@@ -1,6 +1,10 @@
 package maps
 
-import "container/heap"
+import (
+	"container/heap"
+	"fmt"
+	"math"
+)
 
 type dist struct {
 	idx      int
@@ -27,52 +31,69 @@ func (d *distQueue) Push(x interface{}) {
 }
 
 func (d *distQueue) Pop() interface{} {
-	head := (*d)[0]
-	*d = (*d)[1:]
-	return head
+	old := *d
+	n := len(old)
+	x := old[n-1]
+	*d = old[0 : n-1]
+	return x
 }
 
 var _ heap.Interface = &distQueue{}
 
-func Shortest(m *Map, from, to int) []dist {
+func Shortest(m *Map, from, to int) []int {
 	visited := make([]bool, m.Width*m.Height)
 	paths := make([]dist, m.Width*m.Height)
 
 	toVisit := &distQueue{}
+	heap.Init(toVisit)
 	heap.Push(toVisit, dist{
 		idx:      from,
 		previous: -1,
 		dist:     0.0,
 	})
 
-	for next := heap.Pop(toVisit).(dist); toVisit.Len() > 0; next = heap.Pop(toVisit).(dist) {
+	i := 0
+	for toVisit.Len() > 0 {
+		next := heap.Pop(toVisit).(dist)
+		if visited[next.idx] {
+			continue
+		}
+
 		visited[next.idx] = true
 		paths[next.idx] = next
+		if next.idx == to {
+			break
+		}
 
+		curElevation := m.Elevation[next.idx]
 		neighbors := m.Neighbors(next.idx)
 		for _, n := range neighbors {
+			dElevation := math.Abs(curElevation - m.Elevation[n])
+			toN := 1 + 100000000*dElevation*dElevation
+
 			if visited[n] {
 				continue
 			}
-			toN := 1 + 10*m.Elevation[n]
 
 			heap.Push(toVisit, dist{
 				idx:      n,
 				previous: next.idx,
 				dist:     next.dist + toN,
 			})
-
-			if next.idx == to {
-				break
-			}
+		}
+		//fmt.Println(toVisit.Len())
+		i++
+		if i > 10000000 {
+			fmt.Println(next.dist)
+			panic("WHAT")
 		}
 	}
 
-	var result []dist
+	var result []int
 	for cur := to; cur != from; {
-		result = append(result, paths[cur])
+		result = append(result, paths[cur].idx)
 		cur = paths[cur].previous
 	}
-	result = append(result, paths[from])
+	result = append(result, paths[from].idx)
 	return result
 }
