@@ -43,22 +43,68 @@ func (m *Map) Fill(n *noise.Fractal) {
 	}
 }
 
-func (m *Map) Neighbors(idx int) []int {
+const sqrt2 = 1.4142135623730950488016887242096980785696718753769480731766797379
+
+func (m *Map) Neighbors(idx int) []node {
 	x := idx / m.Height
 	y := idx % m.Height
 
-	var result []int
-	if y > 0 {
-		result = append(result, idx-1)
-	}
-	if y < (m.Height - 1) {
-		result = append(result, idx+1)
-	}
+	var result []node
 	if x > 0 {
-		result = append(result, idx-m.Height)
+		result = append(result, node{
+			idx: idx-m.Height,
+			previous: idx,
+			dist: 1.0,
+		})
+	}
+	if x > 0 && y > 0 {
+		result = append(result, node{
+			idx: idx-m.Height-1,
+			previous: idx,
+			dist: sqrt2,
+		})
+	}
+	if y > 0 {
+		result = append(result, node{
+			idx: idx-1,
+			previous: idx,
+			dist: 1.0,
+		})
+	}
+	if x < (m.Width - 1) && y > 0 {
+		result = append(result, node{
+			idx: idx+m.Height-1,
+			previous: idx,
+			dist: sqrt2,
+		})
 	}
 	if x < (m.Width - 1) {
-		result = append(result, idx+m.Height)
+		result = append(result, node{
+			idx: idx+m.Height,
+			previous: idx,
+			dist: 1.0,
+		})
+	}
+	if x < (m.Width - 1) && y < (m.Height - 1) {
+		result = append(result, node{
+			idx: idx+m.Height+1,
+			previous: idx,
+			dist: sqrt2,
+		})
+	}
+	if y < (m.Height - 1) {
+		result = append(result, node{
+			idx: idx+1,
+			previous: idx,
+			dist: 1.0,
+		})
+	}
+	if x > 0 && y < (m.Height - 1) {
+		result = append(result, node{
+			idx: idx-m.Height+1,
+			previous: idx,
+			dist: sqrt2,
+		})
 	}
 	return result
 }

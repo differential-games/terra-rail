@@ -2,18 +2,30 @@ package maps
 
 import (
 	"container/heap"
+	"fmt"
 	"math"
+)
+
+type Origin int8
+
+var (
+	None  Origin = 0
+	Start Origin = 1
+	End   Origin = 2
+	Both         = Start | End
 )
 
 // node represents a visited location on a Map.
 type node struct {
 	// idx is the id of tis node in the Map.
-	idx      int
+	idx int
 	// previous is the index of the node which gets to this node fastest.
 	// -1 indicates this is the starting node.
 	previous int
+	// origin is whether this node was first reached from the Start or End.
+	origin Origin
 	// dist is the cost to get to node from a starting point.
-	dist     float64
+	dist float64
 }
 
 // nodeQueue is a priority queue of nodes to visit.
@@ -55,8 +67,8 @@ var _ heap.Interface = &nodeQueue{}
 //
 // TODO: make the distance metric configurable.
 // TODO: use A* to make more efficient.
-func Shortest(m *Map, from, to int) []int {
-	visited := make([]bool, m.Width*m.Height)
+func Shortest(m *Map, from, to int) ([]int, []int) {
+	visited := make([]Origin, m.Width*m.Height)
 	paths := make([]node, m.Width*m.Height)
 
 	// Initialize the node priority queue.
@@ -64,56 +76,80 @@ func Shortest(m *Map, from, to int) []int {
 	heap.Init(toVisit)
 	heap.Push(toVisit, node{
 		idx:      from,
+		origin:   Start,
+		previous: -1,
+		dist:     0.0,
+	})
+	heap.Push(toVisit, node{
+		idx:      to,
+		origin:   End,
 		previous: -1,
 		dist:     0.0,
 	})
 
+	end1 := 0
+	end2 := 0
 	for toVisit.Len() > 0 {
 		// get the next node.
-		next := heap.Pop(toVisit).(node)
-		if visited[next.idx] {
-			// We got to this node by a shorter path, so discard.
+		cur := heap.Pop(toVisit).(node)
+
+		prevOrigin := visited[cur.idx]
+		if prevOrigin == cur.origin {
+			// We've already visited this from this Origin in a faster way.
 			continue
 		}
 
-		// Mark this node as visited and add it to known shortest paths.
-		visited[next.idx] = true
-		paths[next.idx] = next
-		if next.idx == to {
-			// We've reached the target node.
+		if cur.origin|prevOrigin == Both {
+			// We've finally met.
+			end1 = cur.previous
+			end2 = cur.idx
 			break
 		}
+		paths[cur.idx] = cur
 
-		curElevation := m.Elevation[next.idx]
+		// Mark this node as visited and add it to known shortest paths.
+		visited[cur.idx] = cur.origin
+
+		curElevation := m.Elevation[cur.idx]
 		// Get the nodes neighboring this one.
-		neighbors := m.Neighbors(next.idx)
+		neighbors := m.Neighbors(cur.idx)
 		for _, n := range neighbors {
-			dElevation := math.Abs(curElevation - m.Elevation[n])
-			// The distance metric. Heavily weights against large changes in
-			// elevation.
-			toN := 1 + 100000000*dElevation*dElevation
-
-			if visited[n] {
-				// We've already visited this neighbor, so nothing to do.
+			if visited[n.idx] == cur.origin {
+				// We've already visited this neighbor from this Origin, so
+				// nothing to do.
 				continue
 			}
 
+			dElevation := math.Abs(curElevation-m.Elevation[n.idx]) / n.dist
+			// The distance metric. Heavily weights against large changes in
+			// elevation.
+			toN := n.dist + 1000000*dElevation*dElevation
+
+			//slope := math.Abs(curElevation - m.Elevation[n.idx])/n.dist
+			// The distance metric. Heavily weights against large changes in
+			// elevation.
+			//n.dist += 00000*slope*slope
+
 			// Add this neighbor to the priority queue.
 			heap.Push(toVisit, node{
-				idx:      n,
-				previous: next.idx,
-				dist:     next.dist + toN,
+				idx:      n.idx,
+				origin:   cur.origin,
+				previous: cur.idx,
+				dist:     cur.dist + toN,
 			})
 		}
 	}
 
 	// Recreate the path from "from" to "to" by starting at "to" and
 	// backtracking.
-	var result []int
-	for cur := to; cur != from; {
-		result = append(result, paths[cur].idx)
-		cur = paths[cur].previous
+	var result1 []int
+	for cur := end1; cur != -1; cur = paths[cur].previous {
+		result1 = append(result1, paths[cur].idx)
 	}
-	result = append(result, paths[from].idx)
-	return result
+	var result2 []int
+	for cur := end2; cur != -1; cur = paths[cur].previous {
+		result2 = append(result2, paths[cur].idx)
+	}
+	fmt.Println(end1, end2)
+	return result1, result2
 }

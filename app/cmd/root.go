@@ -18,8 +18,8 @@ import (
 )
 
 const (
-	Width = 960*3
-	Height = 540*3
+	Width = 960*3/2
+	Height = 540*3/2
 )
 
 func run() {
@@ -32,7 +32,7 @@ func run() {
 
 	cfg := pixelgl.WindowConfig{
 		Title:  "Terra Rail",
-		Bounds: pixel.R(0, 0, Width, Height),
+		Bounds: pixel.R(0, 0, Width*4/5, Height*4/5),
 		VSync:  true,
 	}
 	win, err := pixelgl.NewWindow(cfg)
@@ -40,39 +40,53 @@ func run() {
 		panic(err)
 	}
 
-	highest := 0.0
-	lowest := math.MaxFloat64
-	from := 0
-	to := 0
+	from := 100*(Height+1)
+	to := Width*Height - 100*(Height+1)
 
-	for i, h := range m.Elevation {
-		if h > highest {
-			highest = h
-			from = i
-		}
-		if h < lowest {
-			lowest = h
-			to = i
-		}
-	}
+	now := time.Now()
+	path1, path2 := maps.Shortest(&m, from, to)
+	fmt.Println(time.Now().Sub(now))
 
-	path := maps.Shortest(&m, from, to)
-
-	img := image.NewRGBA(image.Rect(0, 0, Width/2, Height))
+	img := image.NewRGBA(image.Rect(0, 0, Width, Height))
 	for x := 0; x < Width; x++ {
 		for y := 0; y < Height; y++ {
 			g := m.Elevation[x*Height+y]*65535
 			if math.Mod(g, 5000) < 200 {
-				g = 0
+				if g > 32768/4 {
+					g = 0
+				} else {
+					g = 65535/2
+				}
 			}
 			img.Set(x, y, color.Gray16{Y: uint16(g)})
 		}
 	}
 
-	for _, p := range path {
+	for _, p := range path1 {
 		x := p / (Height)
 		y := p % (Height)
+		img.Set(x-1, y-1, colornames.Green)
+		img.Set(x-1, y, colornames.Green)
+		img.Set(x-1, y+1, colornames.Green)
+		img.Set(x, y-1, colornames.Green)
 		img.Set(x, y, colornames.Green)
+		img.Set(x, y+1, colornames.Green)
+		img.Set(x+1, y-1, colornames.Green)
+		img.Set(x+1, y, colornames.Green)
+		img.Set(x+1, y+1, colornames.Green)
+	}
+	for _, p := range path2 {
+		x := p / (Height)
+		y := p % (Height)
+		img.Set(x-1, y-1, colornames.Blue)
+		img.Set(x-1, y, colornames.Blue)
+		img.Set(x-1, y+1, colornames.Blue)
+		img.Set(x, y-1, colornames.Blue)
+		img.Set(x, y, colornames.Blue)
+		img.Set(x, y+1, colornames.Blue)
+		img.Set(x+1, y-1, colornames.Blue)
+		img.Set(x+1, y, colornames.Blue)
+		img.Set(x+1, y+1, colornames.Blue)
 	}
 
 	pd := pixel.PictureDataFromImage(img)
@@ -81,7 +95,7 @@ func run() {
 	for !win.Closed() {
 		win.Clear(colornames.Green)
 
-		s.Draw(win, pixel.IM.Moved(win.Bounds().Center()).Scaled(win.Bounds().Center(), 2.0))
+		s.Draw(win, pixel.IM.Moved(win.Bounds().Center()).Scaled(win.Bounds().Center(), 0.8))
 
 		win.Update()
 	}
