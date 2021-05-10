@@ -2,14 +2,12 @@ package maps
 
 import (
 	"container/heap"
-	"fmt"
 	"math"
 )
 
 type Origin int8
 
 var (
-	None  Origin = 0
 	Start Origin = 1
 	End   Origin = 2
 	Both         = Start | End
@@ -26,6 +24,8 @@ type node struct {
 	origin Origin
 	// dist is the cost to get to node from a starting point.
 	dist float64
+
+	minCost float64
 }
 
 // nodeQueue is a priority queue of nodes to visit.
@@ -38,7 +38,7 @@ func (d *nodeQueue) Len() int {
 
 // Less implements heap.Interface.
 func (d *nodeQueue) Less(i, j int) bool {
-	return (*d)[i].dist < (*d)[j].dist
+	return (*d)[i].minCost < (*d)[j].minCost
 }
 
 // Swap implements heap.Interface.
@@ -66,8 +66,7 @@ var _ heap.Interface = &nodeQueue{}
 // An implementation of Dijkstra's algorithm.
 //
 // TODO: make the distance metric configurable.
-// TODO: use A* to make more efficient.
-func Shortest(m *Map, from, to int) ([]int, []int) {
+func Shortest(m *Map, from, to int) []int {
 	visited := make([]Origin, m.Width*m.Height)
 	paths := make([]node, m.Width*m.Height)
 
@@ -131,25 +130,34 @@ func Shortest(m *Map, from, to int) ([]int, []int) {
 			//n.dist += 00000*slope*slope
 
 			// Add this neighbor to the priority queue.
+			minDistLeft := 0.0
+			if cur.origin == Start {
+				dx := float64((to / m.Height) - (cur.idx / m.Height))
+				dy := float64((to % m.Height) - (cur.idx % m.Height))
+				minDistLeft = math.Sqrt(dx*dx+dy*dy)
+			} else {
+				dx := float64((from / m.Height) - (cur.idx / m.Height))
+				dy := float64((from % m.Height) - (cur.idx % m.Height))
+				minDistLeft = math.Sqrt(dx*dx+dy*dy)
+			}
 			heap.Push(toVisit, node{
 				idx:      n.idx,
 				origin:   cur.origin,
 				previous: cur.idx,
 				dist:     cur.dist + toN,
+				minCost: minDistLeft + cur.dist + toN,
 			})
 		}
 	}
 
-	// Recreate the path from "from" to "to" by starting at "to" and
-	// backtracking.
-	var result1 []int
+	// Recreate the path from "from" to "to" by starting at the meeting points
+	// and backtracking.
+	var result []int
 	for cur := end1; cur != -1; cur = paths[cur].previous {
-		result1 = append(result1, paths[cur].idx)
+		result = append(result, paths[cur].idx)
 	}
-	var result2 []int
 	for cur := end2; cur != -1; cur = paths[cur].previous {
-		result2 = append(result2, paths[cur].idx)
+		result = append(result, paths[cur].idx)
 	}
-	fmt.Println(end1, end2)
-	return result1, result2
+	return result
 }
