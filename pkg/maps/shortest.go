@@ -122,7 +122,7 @@ func Shortest(m *Map, from, to int) []int {
 			dElevation := math.Abs(curElevation-m.Elevation[n.idx]) / n.dist
 			// The distance metric. Heavily weights against large changes in
 			// elevation.
-			toN := n.dist + 1000000*dElevation*dElevation
+			toN := n.dist + 10000000*dElevation*dElevation
 
 			//slope := math.Abs(curElevation - m.Elevation[n.idx])/n.dist
 			// The distance metric. Heavily weights against large changes in

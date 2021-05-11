@@ -2,12 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/differential-games/hyper-terrain/pkg/noise"
-	"github.com/differential-games/terra-rail/pkg/maps"
-	"github.com/faiface/pixel"
-	"github.com/faiface/pixel/imdraw"
-	"github.com/faiface/pixel/pixelgl"
-	"golang.org/x/image/colornames"
 	"image"
 	"image/color"
 	"math"
@@ -15,16 +9,23 @@ import (
 	"os"
 	"time"
 
+	"github.com/differential-games/hyper-terrain/pkg/noise"
+	"github.com/differential-games/terra-rail/pkg/maps"
+	"github.com/faiface/pixel"
+	"github.com/faiface/pixel/imdraw"
+	"github.com/faiface/pixel/pixelgl"
+	"golang.org/x/image/colornames"
+
 	"github.com/spf13/cobra"
 )
 
 const (
-	Width = 960*3/2
-	Height = 540*3/2
+	Width = 2560*9/10
+	Height = 1440*9/10
 )
 
 func run() {
-	rnd := rand.New(rand.NewSource(time.Now().UnixNano()*0))
+	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
 
 	m := maps.NewMap(Width, Height)
 	n := &noise.Fractal{}
@@ -41,20 +42,21 @@ func run() {
 		panic(err)
 	}
 
-	from := 500*(Height+1)
-	to := Width*Height - 500*(Height+1)
-	from2 := 100*(Height+1)
-	from3 := 700*(Height+1)+Height*200
-	from4 := 500*(Height+1)+Height*800
+	from := 100*Height+100
+	from2 := (Width-100)*Height+100
+	from3 := 100*Height+(Height-100)
+	from4 := (Width-100)*Height+(Height-100)
+	from5 := 600*Height+700
 
 	now := time.Now()
-	path := maps.Shortest(&m, from, to)
-	path = append(path, maps.Shortest(&m, from2, from)...)
-	path = append(path, maps.Shortest(&m, from2, to)...)
-	path = append(path, maps.Shortest(&m, from, from3)...)
-	path = append(path, maps.Shortest(&m, to, from3)...)
-	path = append(path, maps.Shortest(&m, to, from4)...)
+	path := maps.Shortest(&m, from, from2)
+	path = append(path, maps.Shortest(&m, from2, from4)...)
 	path = append(path, maps.Shortest(&m, from3, from4)...)
+	path = append(path, maps.Shortest(&m, from, from3)...)
+	path = append(path, maps.Shortest(&m, from, from5)...)
+	path = append(path, maps.Shortest(&m, from2, from5)...)
+	path = append(path, maps.Shortest(&m, from3, from5)...)
+	path = append(path, maps.Shortest(&m, from4, from5)...)
 	fmt.Println(time.Now().Sub(now))
 
 	img := image.NewRGBA(image.Rect(0, 0, Width, Height))
@@ -92,20 +94,20 @@ func run() {
 	starts := imdraw.New(nil)
 	starts.Color = colornames.Pink
 	starts.SetMatrix(pixel.IM.Scaled(pixel.V(0, 0), 1.0))
-	starts.Push(pixel.V(490, Height-510))
-	starts.Push(pixel.V(510, Height-490))
+	starts.Push(pixel.V(90, Height-90))
+	starts.Push(pixel.V(110, Height-110))
 	starts.Rectangle(0)
-	starts.Push(pixel.V(90, Height-110))
-	starts.Push(pixel.V(110, Height-90))
+	starts.Push(pixel.V(Width-90, Height-110))
+	starts.Push(pixel.V(Width-110, Height-90))
 	starts.Rectangle(0)
-	starts.Push(pixel.V(930, Height-300))
-	starts.Push(pixel.V(950, Height-320))
+	starts.Push(pixel.V(90, 90))
+	starts.Push(pixel.V(110, 110))
 	starts.Rectangle(0)
-	starts.Push(pixel.V(890, Height-690))
-	starts.Push(pixel.V(910, Height-710))
+	starts.Push(pixel.V(Width-90, 90))
+	starts.Push(pixel.V(Width-110, 110))
 	starts.Rectangle(0)
-	starts.Push(pixel.V(1290, Height-490))
-	starts.Push(pixel.V(1310, Height-510))
+	starts.Push(pixel.V(590, Height-690))
+	starts.Push(pixel.V(610, Height-710))
 	starts.Rectangle(0)
 
 	for !win.Closed() {

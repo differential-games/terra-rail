@@ -1,8 +1,9 @@
 package maps
 
 import (
-	"github.com/differential-games/hyper-terrain/pkg/noise"
 	"math"
+
+	"github.com/differential-games/hyper-terrain/pkg/noise"
 )
 
 type Map struct {
