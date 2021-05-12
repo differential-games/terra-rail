@@ -15,8 +15,8 @@ type Map struct {
 	Elevation []float64
 }
 
-func NewMap(width, height int) Map {
-	return Map{
+func NewMap(width, height int) *Map {
+	return &Map{
 		Width:  width,
 		Height: height,
 
@@ -45,6 +45,42 @@ func (m *Map) Fill(n *noise.Fractal) {
 }
 
 const sqrt2 = 1.4142135623730950488016887242096980785696718753769480731766797379
+
+func (m *Map) IndexOf(x, y int) int {
+	return x*m.Height+y
+}
+
+func (m *Map) Neighbors2(idx int) []int {
+	x := idx / m.Height
+	y := idx % m.Height
+
+	var result []int
+	if x > 0 {
+		result = append(result, idx-m.Height)
+	}
+	if x > 0 && y > 0 {
+		result = append(result, idx-m.Height-1)
+	}
+	if y > 0 {
+		result = append(result, idx-1)
+	}
+	if x < (m.Width - 1) && y > 0 {
+		result = append(result, idx+m.Height-1)
+	}
+	if x < (m.Width - 1) {
+		result = append(result, idx+m.Height)
+	}
+	if x < (m.Width - 1) && y < (m.Height - 1) {
+		result = append(result, idx+m.Height+1)
+	}
+	if y < (m.Height - 1) {
+		result = append(result, idx+1)
+	}
+	if x > 0 && y < (m.Height - 1) {
+		result = append(result, idx-m.Height+1)
+	}
+	return result
+}
 
 func (m *Map) Neighbors(idx int) []node {
 	x := idx / m.Height
