@@ -7,7 +7,6 @@ import (
 	"math"
 	"math/rand"
 	"os"
-	"sync"
 	"time"
 
 	"github.com/differential-games/hyper-terrain/pkg/noise"
@@ -20,8 +19,8 @@ import (
 )
 
 const (
-	Width = 2560*8/10
-	Height = 1440*8/10
+	Width = 960
+	Height = 540
 )
 
 func run() {
@@ -34,8 +33,8 @@ func run() {
 
 	cfg := pixelgl.WindowConfig{
 		Title:  "Terra Rail",
-		Bounds: pixel.R(0, 0, Width, Height),
-		// VSync:  true,
+		Bounds: pixel.R(0, 0, Width*3/2, Height*3/2),
+		VSync:  true,
 	}
 	win, err := pixelgl.NewWindow(cfg)
 	if err != nil {
@@ -61,63 +60,23 @@ func run() {
 	s := pixel.NewSprite(pd, pd.Bounds())
 
 	second := time.Tick(time.Second)
-	initMapUpdate := time.Tick(time.Second*6)
 	mapUpdate := time.Tick(time.Second / 20)
 	frames := 0
 
-	img2Lock := sync.Mutex{}
-	img2 := image.NewRGBA(image.Rect(0, 0, Width, Height))
-	pd2 := pixel.PictureDataFromImage(img2)
-	s2 := pixel.NewSprite(pd2, pd2.Bounds())
-
-	inited := false
 	for !win.Closed() {
 		win.Clear(colornames.Aliceblue)
 
-		s.Draw(win, pixel.IM.Moved(win.Bounds().Center()).Scaled(win.Bounds().Center(), 1.0))
-		s2.Draw(win, pixel.IM.Moved(win.Bounds().Center()).Scaled(win.Bounds().Center(), 1.0))
+		s.Draw(win, pixel.IM.Moved(win.Bounds().Center()).Scaled(win.Bounds().Center(), 1.5))
 
 		win.Update()
 
 		frames++
 		select {
-		case <- initMapUpdate:
-			if inited {
-				continue
-			}
-			inited = true
-			growths := maps.GrowthAround(m, 500*Height+500)
-			go func() {
-				for growth := range growths {
-					img2Lock.Lock()
-					g := growth.Elevation*65535
-					if math.Mod(g, 5000) < 200 {
-						if g > 32768/4 {
-							g = 0
-						} else {
-							g = 65535/2
-						}
-					}
-					c := color.RGBA64{
-						R: 0,
-						G: uint16(g),
-						B: 0,
-						A: 65535,
-					}
-					img2.Set(growth.Idx / Height, growth.Idx % Height, c)
-					img2Lock.Unlock()
-				}
-			}()
 		case <- mapUpdate:
-			img2Lock.Lock()
-			pd2 = pixel.PictureDataFromImage(img2)
-			s2 = pixel.NewSprite(pd2, pd2.Bounds())
-			img2Lock.Unlock()
 		case <-second:
 			fmt.Println("Second")
 			win.SetTitle(fmt.Sprintf("%s | FPS: %d", cfg.Title, frames))
 			frames = 0
-		default:
 		}
 	}
 }
